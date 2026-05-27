@@ -1,0 +1,15 @@
+# 依赖包（本次报错的罪魁祸首）
+node_modules/
+
+# Next.js 编译输出与缓存
+.next/
+out/
+build/
+
+# 本地环境变量密钥
+.env*.local
+.env
+
+# 系统与日志文件
+.DS_Store
+*.log

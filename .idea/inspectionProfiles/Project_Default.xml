@@ -1,0 +1,27 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <list>
+          <option value="librosa" />
+          <option value="faster-whisper" />
+          <option value="pydub" />
+          <option value="wavmark" />
+          <option value="numpy" />
+          <option value="eng_to_ipa" />
+          <option value="inflect" />
+          <option value="unidecode" />
+          <option value="whisper-timestamped" />
+          <option value="openai" />
+          <option value="python-dotenv" />
+          <option value="pypinyin" />
+          <option value="cn2an" />
+          <option value="jieba" />
+          <option value="gradio" />
+          <option value="langid" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
