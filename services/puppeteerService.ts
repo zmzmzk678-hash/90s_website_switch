@@ -17,7 +17,11 @@ export class PuppeteerService {
   }
 
   public static async scrapeUrl(url: string): Promise<ScrapingResult> {
-    const browser = await this.getBrowserInstance();
+
+    // 生产环境直接连接云端浏览器，不需要本地消耗内存
+    const browser = await puppeteer.connect({
+        browserWSEndpoint: process.env.BROWSER_WS_ENDPOINT || 'wss://chrome.browserless.io?token=2UawzsU1A4IRrtBedea82960cc17ba3b4ea87eff641c83865'
+        });
     const page: Page = await browser.newPage();
     
     try {
