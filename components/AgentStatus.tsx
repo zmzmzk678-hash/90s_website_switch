@@ -51,13 +51,17 @@ export default function AgentStatus({ logs, currentAgent }: AgentStatusProps) {
               System: 'text-blue-400',
               PuppeteerScraper: 'text-purple-400',
               DeepSeekReasoner: 'text-indigo-400 font-bold',
-              DeepSeekChat: 'text-pink-400 font-bold'
+              DeepSeekChat: 'text-pink-400 font-bold',
+              ImageProcessor: 'text-amber-400 font-bold'
             };
+
+            // 使用安全类型断言，如果未来增加了新智能体，会自动降级为默认的 text-teal-400 颜色，防止打包崩溃
+            const currentAgentColor = agentColors[log.agent as keyof typeof agentColors] || 'text-teal-400';
 
             return (
               <div key={log.id} className="leading-relaxed border-b border-slate-900/40 pb-1.5 last:border-0">
                 <span className="text-slate-600 select-none mr-2">[{log.timestamp}]</span>
-                <span className={`text-[11px] font-bold mr-2 ${agentColors[log.agent]}`}>
+                <span className={`text-[11px] font-bold mr-2 ${currentAgentColor}`}>
                   {log.agent}:
                 </span>
                 <span className={statusColors[log.status]}>{log.message}</span>
