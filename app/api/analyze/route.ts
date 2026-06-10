@@ -7,6 +7,23 @@ import JSZip from 'jszip';
 import fs from 'fs';
 import path from 'path';
 
+interface ProcessedSuccess {
+  url: string;
+  success: true;
+  reconstructedHtml: string;
+  screenshot: string;
+  imageMap: Record<string, string>;
+  title: string;
+}
+
+interface ProcessedError {
+  url: string;
+  success: false;
+  error: string;
+}
+
+type ProcessedItem = ProcessedSuccess | ProcessedError;
+
 async function processSingleUrl(url: string, style: string) {
   const { html, screenshot } = await getRetroScreenshotAndHtml(url);
 
@@ -56,22 +73,22 @@ export async function POST(request: Request) {
       urlList.map((u) => processSingleUrl(u, style || 'GeoCities'))
     );
 
-    const processed = results.map((r, i) => ({
-      url: urlList[i],
-      success: r.status === 'fulfilled',
-      ...(r.status === 'fulfilled' ? r.value : { error: (r as PromiseRejectedResult).reason?.message }),
-    }));
+    const processed: ProcessedItem[] = results.map((r, i) => {
+      if (r.status === 'fulfilled') {
+        return { url: urlList[i], success: true as const, ...r.value };
+      } else {
+        return { url: urlList[i], success: false as const, error: (r as PromiseRejectedResult).reason?.message };
+      }
+    });
 
     if (exportZip) {
       const zip = new JSZip();
       for (const item of processed) {
-        if (!item.success || !(item as any).reconstructedHtml) continue;
+        if (!item.success) continue;
         const slug = new URL(item.url).hostname.replace(/\./g, '_');
-        zip.file(`${slug}/index.html`, (item as any).reconstructedHtml);
-
-        const imageMap = (item as any).imageMap || {};
-        for (const localPath of Object.values(imageMap)) {
-          const filePath = path.join(process.cwd(), 'public', localPath as string);
+        zip.file(`${slug}/index.html`, item.reconstructedHtml);
+        for (const localPath of Object.values(item.imageMap)) {
+          const filePath = path.join(process.cwd(), 'public', localPath);
           if (fs.existsSync(filePath)) {
             const imgBuf = fs.readFileSync(filePath);
             zip.file(`${slug}${localPath}`, imgBuf);
@@ -92,7 +109,8 @@ export async function POST(request: Request) {
     }
 
     if (urlList.length === 1) {
-      return NextResponse.json({ success: true, ...processed[0] });
+      const item = processed[0];
+      return NextResponse.json(item);
     }
     return NextResponse.json({ success: true, results: processed });
 
