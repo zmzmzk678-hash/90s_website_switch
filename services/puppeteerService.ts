@@ -44,7 +44,7 @@ export async function getRetroScreenshotAndHtml(
 
     await page.goto(url, {
       waitUntil: 'networkidle2',
-      timeout: 30000,
+      timeout: 70000,
     });
 
     const html = await page.content();
