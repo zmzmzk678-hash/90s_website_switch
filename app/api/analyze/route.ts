@@ -4,8 +4,6 @@ import { ImageProcessorService } from '../../../services/imageProcessorService';
 import { LayoutAnalyzer } from '../../../agents/layoutAnalyzer';
 import { HtmlRewriter } from '../../../agents/htmlRewriter';
 import JSZip from 'jszip';
-import fs from 'fs';
-import path from 'path';
 
 interface ProcessedSuccess {
   url: string;
@@ -87,14 +85,16 @@ export async function POST(request: Request) {
         if (!item.success) continue;
         const slug = new URL(item.url).hostname.replace(/\./g, '_');
         zip.file(`${slug}/index.html`, item.reconstructedHtml);
-        for (const localPath of Object.values(item.imageMap)) {
-          const filePath = path.join(process.cwd(), 'public', localPath);
-          if (fs.existsSync(filePath)) {
-            const imgBuf = fs.readFileSync(filePath);
-            zip.file(`${slug}${localPath}`, imgBuf);
-          }
+
+        let imgIndex = 0;
+        for (const [, dataUrl] of Object.entries(item.imageMap)) {
+          if (!dataUrl.startsWith('data:')) continue;
+          const base64Data = dataUrl.split(',')[1];
+          const imgBuf = Buffer.from(base64Data, 'base64');
+          zip.file(`${slug}/images/img_${imgIndex++}.png`, imgBuf);
         }
       }
+
       const zipBuf = await zip.generateAsync({ type: 'nodebuffer' });
       const arrayBuffer = zipBuf.buffer.slice(
         zipBuf.byteOffset,
