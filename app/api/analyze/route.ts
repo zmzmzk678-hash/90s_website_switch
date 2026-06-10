@@ -29,7 +29,7 @@ async function processSingleUrl(url: string, style: string) {
     title: titleMatch ? titleMatch[1] : url,
     meta: {},
     domTree: html.substring(0, 50000),
-    imageUrls: [],
+    imageUrls: [] as string[],
   };
 
   const analyzer = new LayoutAnalyzer();
