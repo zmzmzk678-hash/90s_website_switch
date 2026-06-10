@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
 
 /**
  * 封装后的浏览器服务
@@ -8,16 +8,21 @@ export async function getRetroScreenshotAndHtml(url: string) {
   let browser;
 
   try {
-    // 检查是否配置了云端浏览器地址
-    if (process.env.BROWSER_WS_ENDPOINT) {
+    const wsEndpoint = process.env.BROWSER_WS_ENDPOINT
+      || (process.env.BROWSERLESS_API_TOKEN
+          ? `wss://chrome.browserless.io?token=${process.env.BROWSERLESS_API_TOKEN}`
+          : null);
+
+    if (wsEndpoint) {
       console.log("🔗 正在连接到云端浏览器 (Remote Browser)...");
       browser = await puppeteer.connect({
-        browserWSEndpoint: process.env.BROWSER_WS_ENDPOINT,
+        browserWSEndpoint: wsEndpoint,
       });
     } else {
       // 本地开发环境
       console.log("💻 正在启动本地浏览器 (Local Browser)...");
       browser = await puppeteer.launch({
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome',
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -36,13 +41,16 @@ export async function getRetroScreenshotAndHtml(url: string) {
 
     await page.close();
 
-    if (!process.env.BROWSER_WS_ENDPOINT) {
+    if (!wsEndpoint) {
       await browser.close();
     }
 
     return { html, screenshot };
   } catch (error) {
     console.error("❌ 浏览器服务执行出错:", error);
+    if (browser) {
+      try { await browser.close(); } catch {}
+    }
     throw error;
   }
 }
