@@ -79,7 +79,11 @@ export async function POST(request: Request) {
         }
       }
       const zipBuf = await zip.generateAsync({ type: 'nodebuffer' });
-      return new NextResponse(zipBuf, {
+      const arrayBuffer = zipBuf.buffer.slice(
+        zipBuf.byteOffset,
+        zipBuf.byteOffset + zipBuf.byteLength
+      ) as ArrayBuffer;
+      return new NextResponse(arrayBuffer, {
         headers: {
           'Content-Type': 'application/zip',
           'Content-Disposition': 'attachment; filename="retro_pages.zip"',
