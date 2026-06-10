@@ -67,9 +67,11 @@ export async function POST(request: Request) {
     if (exportZip) {
       const zip = new JSZip();
       for (const item of processed) {
-        if (!item.success || !item.reconstructedHtml) continue;
+        if (!item.success || !(item as any).reconstructedHtml) continue;
         const slug = new URL(item.url).hostname.replace(/\./g, '_');
-        zip.file(`${slug}/index.html`, item.reconstructedHtml);
+        zip.file(`${slug}/index.html`, (item as any).reconstructedHtml);
+
+        const imageMap = (item as any).imageMap || {};
 
         // 打包图片
         const imageMap = item.imageMap || {};
