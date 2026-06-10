@@ -45,7 +45,6 @@ export async function POST(request: Request) {
   try {
     const { url, urls, style, exportZip } = await request.json();
 
-    // 批量处理
     const urlList: string[] = urls?.length ? urls : url ? [url] : [];
     if (!urlList.length) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
@@ -63,7 +62,6 @@ export async function POST(request: Request) {
       ...(r.status === 'fulfilled' ? r.value : { error: (r as PromiseRejectedResult).reason?.message }),
     }));
 
-    // 导出 ZIP
     if (exportZip) {
       const zip = new JSZip();
       for (const item of processed) {
@@ -72,9 +70,6 @@ export async function POST(request: Request) {
         zip.file(`${slug}/index.html`, (item as any).reconstructedHtml);
 
         const imageMap = (item as any).imageMap || {};
-
-        // 打包图片
-        const imageMap = item.imageMap || {};
         for (const localPath of Object.values(imageMap)) {
           const filePath = path.join(process.cwd(), 'public', localPath as string);
           if (fs.existsSync(filePath)) {
@@ -92,7 +87,6 @@ export async function POST(request: Request) {
       });
     }
 
-    // 单个直接返回，批量返回数组
     if (urlList.length === 1) {
       return NextResponse.json({ success: true, ...processed[0] });
     }
