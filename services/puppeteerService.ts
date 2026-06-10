@@ -1,94 +1,66 @@
-import puppeteer from 'puppeteer-core';
+import puppeteer, { Browser } from 'puppeteer-core';
 
-interface RetroResult {
+export type RetroResult = {
   html: string;
-  screenshot: string; // base64 PNG
-}
+  screenshot: string;
+};
 
-/**
- * 通用 Puppeteer 服务
- * - 本地开发：自动使用本机 Chrome
- * - Vercel / Serverless：连接 Browserless
- * - Docker / Linux：可通过环境变量指定 Chrome 路径
- */
-export async function getRetroScreenshotAndHtml(url: string): Promise<RetroResult> {
-  let browser: puppeteer.Browser | null = null;
-
-  const wsEndpoint =
-    process.env.BROWSER_WS_ENDPOINT ||
-    (process.env.BROWSERLESS_API_TOKEN
-      ? `wss://chrome.browserless.io?token=${process.env.BROWSERLESS_API_TOKEN}`
-      : null);
-
-  const isRemote = Boolean(wsEndpoint);
+export async function getRetroScreenshotAndHtml(
+  url: string
+): Promise<RetroResult> {
+  let browser: Browser | null = null;
 
   try {
-    if (isRemote) {
-      // =========================
-      // ☁️ Serverless / Vercel
-      // =========================
-      console.log('🔗 使用远程 Browserless 浏览器');
+    const wsEndpoint =
+      process.env.BROWSER_WS_ENDPOINT ||
+      (process.env.BROWSERLESS_API_TOKEN
+        ? `wss://chrome.browserless.io?token=${process.env.BROWSERLESS_API_TOKEN}`
+        : null);
+
+    if (wsEndpoint) {
+      console.log('🔗 正在连接到云端浏览器 (Remote Browser)...');
       browser = await puppeteer.connect({
-        browserWSEndpoint: wsEndpoint!,
+        browserWSEndpoint: wsEndpoint,
       });
     } else {
-      // =========================
-      // 💻 本地 / Docker / Linux
-      // =========================
-      console.log('💻 启动本地 Puppeteer 浏览器');
-
+      console.log('💻 正在启动本地浏览器 (Local Browser)...');
       browser = await puppeteer.launch({
-        headless: true,
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH, // 本地一般不需要
+        executablePath:
+          process.env.PUPPETEER_EXECUTABLE_PATH ||
+          '/usr/bin/google-chrome',
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
-          '--disable-gpu',
-          '--no-zygote',
         ],
+        headless: true,
       });
     }
 
     const page = await browser.newPage();
-
     await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ' +
-      'AppleWebKit/537.36 (KHTML, like Gecko) ' +
-      'Chrome/120.0.0.0 Safari/537.36'
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
     );
 
     await page.goto(url, {
       waitUntil: 'networkidle2',
-      timeout: 30_000,
+      timeout: 30000,
     });
 
     const html = await page.content();
-
-    // ✅ 完全不写磁盘：直接内存截图
-    const screenshotBuffer = await page.screenshot({
-      type: 'png',
-    });
+    const screenshot = await page.screenshot({ encoding: 'base64' });
 
     await page.close();
+    await browser.close();
 
-    // ⚠️ 远程 browserless 不要 close
-    if (!isRemote) {
-      await browser.close();
-    }
-
-    return {
-      html,
-      screenshot: `data:image/png;base64,${screenshotBuffer.toString('base64')}`,
-    };
-
-  } catch (error) {
-    console.error('❌ Puppeteer 执行失败:', error);
-    if (browser && !isRemote) {
+    return { html, screenshot };
+  } catch (err) {
+    console.error('❌ Puppeteer 执行失败:', err);
+    if (browser) {
       try {
         await browser.close();
       } catch {}
     }
-    throw error;
+    throw err;
   }
 }
